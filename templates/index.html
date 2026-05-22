@@ -617,9 +617,149 @@ input[type=range]::-moz-range-thumb {
 
 /* ─── SECTION SPACING ─── */
 .section-gap { height: 0.8rem; }
+
+/* ─── MEME CAT GATE ─── */
+#cat-gate {
+  position: fixed; inset: 0;
+  background: linear-gradient(135deg, #1a0a2e 0%, #2d0a3e 50%, #1a0a2e 100%);
+  z-index: 9999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1.2rem;
+  display: none;
+}
+#cat-gate.active { display: flex; }
+
+.cat-gate-title {
+  font-family: 'Great Vibes', cursive;
+  font-size: clamp(2rem, 8vw, 3.5rem);
+  color: #ff7aaa;
+  text-shadow: 0 0 30px #e8437a99;
+  animation: glow-pulse 2s ease-in-out infinite;
+  text-align: center;
+  padding: 0 1rem;
+}
+@keyframes glow-pulse {
+  0%,100% { text-shadow: 0 0 20px #e8437a99; }
+  50%      { text-shadow: 0 0 50px #e8437aff, 0 0 80px #c040a055; }
+}
+
+.meme-cat-wrap {
+  position: relative;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.meme-cat-emoji {
+  font-size: clamp(6rem, 22vw, 9rem);
+  display: block;
+  animation: catBounce 0.7s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 30px #ff7aaa88);
+  line-height: 1;
+}
+@keyframes catBounce {
+  from { transform: translateY(0) rotate(-5deg) scale(1); }
+  to   { transform: translateY(-18px) rotate(5deg) scale(1.07); }
+}
+.cat-speech {
+  position: absolute;
+  top: -3rem; left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  color: #2a0a1e;
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  box-shadow: 0 4px 18px #00000055;
+  animation: speechWobble 1.5s ease-in-out infinite;
+}
+.cat-speech::after {
+  content: '';
+  position: absolute; bottom: -8px; left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: white;
+  border-bottom: none;
+}
+@keyframes speechWobble {
+  0%,100% { transform: translateX(-50%) rotate(-2deg); }
+  50%      { transform: translateX(-50%) rotate(2deg); }
+}
+
+.cat-press-hint {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #c8a2d8;
+  animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100% { opacity: 1; } 50% { opacity: 0.25; }
+}
+
+.cat-stars {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.cat-star {
+  position: absolute;
+  font-size: 1rem;
+  animation: starTwinkle 2s ease-in-out infinite;
+  opacity: 0.4;
+}
+@keyframes starTwinkle {
+  0%,100% { opacity: 0.15; transform: scale(0.8); }
+  50%      { opacity: 0.7;  transform: scale(1.2); }
+}
+
+/* ─── FLYING SPIN BUTTON ─── */
+#flying-spin-btn {
+  position: fixed;
+  z-index: 9998;
+  background: linear-gradient(135deg, var(--rose), #c040a0, var(--orchid));
+  color: white;
+  border: none;
+  border-radius: 100px;
+  padding: 0.85rem 1.6rem;
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  box-shadow: 0 5px 28px #e8437a88;
+  display: none;
+  white-space: nowrap;
+  animation: btnSpin 0.6s linear infinite;
+  -webkit-tap-highlight-color: transparent;
+}
+#flying-spin-btn.flying {
+  display: block;
+}
+@keyframes btnSpin {
+  from { transform: rotate(0deg) scale(1); }
+  to   { transform: rotate(360deg) scale(1); }
+}
 </style>
 </head>
 <body>
+
+<!-- MEME CAT GATE -->
+<div id="cat-gate">
+  <div class="cat-stars" id="cat-stars"></div>
+  <div class="cat-gate-title">✨ It's Finally Here ✨</div>
+  <div class="meme-cat-wrap" onclick="openBirthdayPage()">
+    <div class="cat-speech" id="cat-speech">pspsps... press me! 👀</div>
+    <span class="meme-cat-emoji" id="meme-cat">🐱</span>
+  </div>
+  <div class="cat-press-hint">tap the cat to open ↑</div>
+</div>
+
+<!-- FLYING SPIN BUTTON (shown on birthday night) -->
+<button id="flying-spin-btn" onclick="catchSpinBtn()">🎂 Open Birthday! 🎉</button>
 
 <canvas id="canvas"></canvas>
 <canvas id="butterfly-canvas"></canvas>
@@ -1117,6 +1257,111 @@ setTimeout(() => {
   spawnBurst(['🎊','🎉','💖','🌸','✨','🦋','⭐','🌺','🌷','💕'],
     window.innerWidth/2, window.innerHeight/3);
 }, 500);
+
+// ── BIRTHDAY GATE LOGIC ──
+(function() {
+  const now = new Date();
+  const isBirthdayNight =
+    now.getMonth() === 4 && // May (0-indexed)
+    now.getDate() === 25 &&
+    now.getHours() === 0 && now.getMinutes() < 60; // 12:00am–12:59am
+
+  // For testing: set isBirthdayNight = true to preview the feature
+  // const isBirthdayNight = true;
+
+  if (!isBirthdayNight) return; // Normal mode — nothing changes
+
+  // Hide main page content
+  document.querySelector('.page').style.visibility = 'hidden';
+  document.querySelector('.page').style.opacity = '0';
+
+  // ── FLYING SPIN BUTTON ──
+  const flyBtn = document.getElementById('flying-spin-btn');
+  flyBtn.classList.add('flying');
+
+  let btnX = window.innerWidth / 2 - 80;
+  let btnY = window.innerHeight / 2 - 25;
+  let vx = 3.5 + Math.random() * 2;
+  let vy = 2.5 + Math.random() * 2;
+  let caught = false;
+
+  flyBtn.style.left = btnX + 'px';
+  flyBtn.style.top  = btnY + 'px';
+
+  function moveBtn() {
+    if (caught) return;
+    btnX += vx; btnY += vy;
+    const bw = flyBtn.offsetWidth, bh = flyBtn.offsetHeight;
+    if (btnX <= 0 || btnX + bw >= window.innerWidth)  { vx *= -1; btnX = Math.max(0, Math.min(btnX, window.innerWidth - bw)); }
+    if (btnY <= 0 || btnY + bh >= window.innerHeight) { vy *= -1; btnY = Math.max(0, Math.min(btnY, window.innerHeight - bh)); }
+    // Speed increases each bounce to make it harder
+    vx *= 1.0004; vy *= 1.0004;
+    flyBtn.style.left = btnX + 'px';
+    flyBtn.style.top  = btnY + 'px';
+    requestAnimationFrame(moveBtn);
+  }
+  moveBtn();
+
+  // ── MEME CAT GATE ──
+  const catGate = document.getElementById('cat-gate');
+  const catEl   = document.getElementById('meme-cat');
+  const speechEl = document.getElementById('cat-speech');
+
+  // Populate twinkling stars
+  const starsContainer = document.getElementById('cat-stars');
+  const starEmojis = ['✨','⭐','💫','🌟','✦','💖','🌸'];
+  for (let i = 0; i < 22; i++) {
+    const s = document.createElement('span');
+    s.className = 'cat-star';
+    s.textContent = starEmojis[Math.floor(Math.random() * starEmojis.length)];
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top  = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 2) + 's';
+    s.style.fontSize = (0.6 + Math.random() * 1.2) + 'rem';
+    starsContainer.appendChild(s);
+  }
+
+  // Cycle cat memes & speech bubbles
+  const catMemes   = ['🐱','😺','😸','🙀','😻','🐾','😹','🐈'];
+  const catSpeeches = [
+    'pspsps... press me! 👀',
+    'meow? you dare open it? 🐾',
+    'nya~ happy birthday! 🎉',
+    'click or I scratch 🐱',
+    'mrrrow~ she\'s waiting! 💖',
+    'MEOW MEOW MEOW 🙀',
+  ];
+  let memeIdx = 0;
+  setInterval(() => {
+    memeIdx = (memeIdx + 1) % catMemes.length;
+    catEl.textContent = catMemes[memeIdx];
+    speechEl.textContent = catSpeeches[Math.floor(Math.random() * catSpeeches.length)];
+  }, 1800);
+
+  // Show cat gate only AFTER player catches the flying button
+  window.catchSpinBtn = function() {
+    if (caught) return;
+    caught = true;
+    flyBtn.classList.remove('flying');
+    flyBtn.style.display = 'none';
+    spawnBurst(['🎉','🎊','💖','✨','🌸','🌟'], window.innerWidth/2, window.innerHeight/2);
+    setTimeout(() => { catGate.classList.add('active'); }, 400);
+  };
+
+  window.openBirthdayPage = function() {
+    catGate.classList.remove('active');
+    const page = document.querySelector('.page');
+    page.style.visibility = 'visible';
+    page.style.transition = 'opacity 1s ease';
+    page.style.opacity = '1';
+    spawnBurst(['🎂','🎉','🎊','💖','🌸','✨','🦋','⭐','🌺','🌷','💕'],
+      window.innerWidth/2, window.innerHeight/2);
+    setTimeout(() => {
+      spawnBurst(['🎊','💕','🌟','🌸','✨'], window.innerWidth*0.2, window.innerHeight*0.3);
+      spawnBurst(['💖','🎉','🌺','🦋','⭐'], window.innerWidth*0.8, window.innerHeight*0.3);
+    }, 600);
+  };
+})();
 </script>
 </body>
 </html>
